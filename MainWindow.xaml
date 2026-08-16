@@ -1,0 +1,67 @@
+<Window x:Class="Finder.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Finder"
+        mc:Ignorable="d"
+        Title="OpenWrt Board Finder" Height="470" Width="800"
+        MinHeight="300" MinWidth="620"
+        Icon="image.ico"
+        WindowStartupLocation="CenterScreen" Loaded="Window_Loaded">
+    <Grid>
+        <!-- Разделяем окно на 3 части по горизонтали -->
+        <Grid.RowDefinitions>
+            <RowDefinition Height="50"/>
+            <!-- Верх для текста -->
+            <RowDefinition Height="*"/>
+            <!-- Центр для таблицы -->
+            <RowDefinition Height="70"/>
+            <!-- Низ для кнопок и статуса -->
+        </Grid.RowDefinitions>
+
+        <!-- Заголовок -->
+        <TextBlock Grid.Row="0"
+                   Text="Available OpenWrt Boards"
+                   FontSize="18"
+                   FontWeight="Bold"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"/>
+
+        <!-- Таблица (ListView) -->
+        <ListView Grid.Row="1" Margin="10,0,10,0" x:Name="BoardListView"
+                  ToolTip="Double-click on a board to open its web interface using the IP">
+            <ListView.ItemContainerStyle>
+                <Style TargetType="ListViewItem">
+                    <EventSetter Event="MouseDoubleClick" Handler="ListViewItem_MouseDoubleClick"/>
+                </Style>
+            </ListView.ItemContainerStyle>
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="IP Address" Width="130" DisplayMemberBinding="{Binding Ip}"/>
+                    <GridViewColumn Header="MAC Address" Width="150" DisplayMemberBinding="{Binding Mac}"/>
+                    <GridViewColumn Header="Client IP" Width="130" DisplayMemberBinding="{Binding ClientIp}"/>
+                    <GridViewColumn Header="Version" Width="90" DisplayMemberBinding="{Binding Version}"/>
+                    <GridViewColumn Header="Application" Width="230" DisplayMemberBinding="{Binding App}"/>
+                </GridView>
+            </ListView.View>
+        </ListView>
+
+        <!-- Панель кнопок и строка состояния -->
+        <Grid Grid.Row="2">
+            <TextBlock x:Name="StatusText"
+                       Text="Ready"
+                       Margin="15,0,10,0"
+                       MaxWidth="200"
+                       TextTrimming="CharacterEllipsis"
+                       Foreground="#555555"
+                       HorizontalAlignment="Left"
+                       VerticalAlignment="Center"/>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button x:Name="RefreshButton" Content="Refresh" Width="120" Height="35" Margin="10" Click="Refresh_Click"/>
+                <Button x:Name="ExitButton" Content="Exit" Width="120" Height="35" Margin="10" Click="Exit_Click"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

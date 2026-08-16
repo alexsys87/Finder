@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <ApplicationIcon>image.ico</ApplicationIcon>
+    <AssemblyName>Finder</AssemblyName>
+    <RootNamespace>Finder</RootNamespace>
+    <Product>OpenWrt Board Finder</Product>
+    <AssemblyTitle>OpenWrt Board Finder</AssemblyTitle>
+    <Version>1.1.0</Version>
+    <FileVersion>1.1.0.0</FileVersion>
+    <AssemblyVersion>1.1.0.0</AssemblyVersion>
+    <Platforms>AnyCPU;x64</Platforms>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Resource (не Content): иконка встраивается в сборку и доступна
+         окну через Icon="image.ico" -->
+    <Resource Include="image.ico" />
+  </ItemGroup>
+
+</Project>

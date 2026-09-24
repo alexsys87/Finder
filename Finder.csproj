@@ -19,8 +19,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Resource (не Content): иконка встраивается в сборку и доступна
-         окну через Icon="image.ico" -->
+    <!-- Resource (not Content): the icon is embedded into the assembly and made
+         available to the window via Icon="image.ico" -->
     <Resource Include="image.ico" />
   </ItemGroup>
 

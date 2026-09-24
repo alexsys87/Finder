@@ -11,8 +11,8 @@ namespace Finder
     {
         public App()
         {
-            // Без этих обработчиков любое необработанное исключение
-            // (например, в async void обработчике) молча завершает процесс.
+            // Without these handlers any unhandled exception
+            // (e.g. in an async void handler) silently terminates the process.
             DispatcherUnhandledException += OnDispatcherUnhandledException;
             AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;
         }

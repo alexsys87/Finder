@@ -13,7 +13,7 @@ using System.Windows.Input;
 namespace Finder
 {
     /// <summary>
-    /// Модель данных для отображения в ListView.
+    /// Data model for display in the ListView.
     /// </summary>
     public class BoardInfo : INotifyPropertyChanged
     {
@@ -61,25 +61,25 @@ namespace Finder
 
     public partial class MainWindow : Window
     {
-        // ---------------- Параметры протокола ----------------
+        // ---------------- Protocol parameters ----------------
         private const int DiscoveryPort = 23;
-        private const byte TagCmd = 0xFF;           // маркер запроса
-        private const byte TagStatus = 0xFE;        // маркер ответа
+        private const byte TagCmd = 0xFF;           // request marker
+        private const byte TagStatus = 0xFE;        // response marker
         private const byte CmdDiscoverTarget = 0x02;
 
-        // ---------------- Параметры сканирования ----------------
+        // ---------------- Scan parameters ----------------
         private const int MaxBoards = 256;
-        private const int FirstReplyTimeoutMs = 5000;   // ожидание первого ответа
-        private const int SubsequentTimeoutMs = 1000;   // ожидание следующих ответов
-        private const int OverallTimeoutMs = 15000;     // жёсткий предел всего сканирования
+        private const int FirstReplyTimeoutMs = 5000;   // wait for the first reply
+        private const int SubsequentTimeoutMs = 1000;   // wait for subsequent replies
+        private const int OverallTimeoutMs = 15000;     // hard limit for the whole scan
 
-        /// <summary>Коллекция для привязки данных.</summary>
+        /// <summary>Collection for data binding.</summary>
         public ObservableCollection<BoardInfo> Boards { get; } = new ObservableCollection<BoardInfo>();
 
-        /// <summary>Защита от повторного запуска сканирования (порт 23 занят первым проходом).</summary>
+        /// <summary>Guards against re-entrant scanning (port 23 is held by the first pass).</summary>
         private bool _isScanning;
 
-        // Импорт функции SendARP из iphlpapi.dll (только Windows)
+        // Import of the SendARP function from iphlpapi.dll (Windows only)
         [DllImport("iphlpapi.dll", SetLastError = true)]
         private static extern int SendARP(uint destIp, uint srcIp, byte[] macAddress, ref uint macAddressLength);
 
@@ -90,12 +90,12 @@ namespace Finder
         }
 
         // ------------------------------------------------------------------
-        //  Обработчики UI
+        //  UI handlers
         // ------------------------------------------------------------------
 
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            // На старте не показываем модальное окно "плат не найдено" — только строку статуса.
+            // Don't show the "no boards found" dialog on startup — status line only.
             await RefreshBoardsAsync(showEmptyDialog: false);
         }
 
@@ -110,8 +110,8 @@ namespace Finder
         }
 
         /// <summary>
-        /// Двойной клик по строке списка — открыть веб-интерфейс платы.
-        /// Берём плату из строки, по которой кликнули, а не из SelectedItem.
+        /// Double-click on a list row — open the board's web interface.
+        /// The board is taken from the clicked row, not from SelectedItem.
         /// </summary>
         private void ListViewItem_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
@@ -120,7 +120,7 @@ namespace Finder
         }
 
         /// <summary>
-        /// Открывает веб-интерфейс платы в браузере по умолчанию.
+        /// Opens the board's web interface in the default browser.
         /// </summary>
         private void OpenBoardInBrowser(BoardInfo board)
         {
@@ -143,7 +143,7 @@ namespace Finder
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = url,
-                    UseShellExecute = true   // необходимо для открытия URL в браузере
+                    UseShellExecute = true   // required to open the URL in a browser
                 });
 
                 Debug.WriteLine($"Opening browser for: {url}");
@@ -156,12 +156,12 @@ namespace Finder
         }
 
         // ------------------------------------------------------------------
-        //  Сканирование
+        //  Scanning
         // ------------------------------------------------------------------
 
         /// <summary>
-        /// Результат фонового сканирования. Сообщения об ошибках возвращаются сюда,
-        /// а показываются уже в UI-потоке.
+        /// Result of the background scan. Error messages are returned here
+        /// and displayed once back on the UI thread.
         /// </summary>
         private sealed class ScanResult
         {
@@ -169,7 +169,7 @@ namespace Finder
             public string? Error { get; set; }
         }
 
-        /// <summary>Локальный сокет вместе с адресом интерфейса и его широковещательным адресом.</summary>
+        /// <summary>A local socket paired with its interface address and that interface's broadcast address.</summary>
         private sealed class ScanSocket
         {
             public ScanSocket(Socket socket, IPAddress local, IPAddress? broadcast)
@@ -185,7 +185,7 @@ namespace Finder
         }
 
         /// <summary>
-        /// Асинхронно обновляет список плат, запуская сканирование в фоновом потоке.
+        /// Asynchronously refreshes the board list by running the scan on a background thread.
         /// </summary>
         private async Task RefreshBoardsAsync(bool showEmptyDialog)
         {
@@ -201,7 +201,7 @@ namespace Finder
             {
                 ScanResult result = await Task.Run(DiscoverBoards);
 
-                // Старый список остаётся видимым во время сканирования и заменяется только здесь.
+                // The old list stays visible during the scan and is replaced only here.
                 Boards.Clear();
                 foreach (var board in result.Boards)
                     Boards.Add(board);
@@ -239,8 +239,8 @@ namespace Finder
         }
 
         /// <summary>
-        /// Основной метод сканирования сети. Выполняется в фоновом потоке
-        /// и не обращается к UI напрямую.
+        /// Main network scan method. Runs on a background thread
+        /// and never touches the UI directly.
         /// </summary>
         private ScanResult DiscoverBoards()
         {
@@ -249,7 +249,7 @@ namespace Finder
 
             try
             {
-                // 1. Активные IPv4-адреса (кроме loopback и туннелей)
+                // 1. Active IPv4 addresses (excluding loopback and tunnels)
                 var interfaces = new List<(IPAddress Local, IPAddress? Broadcast)>();
 
                 foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
@@ -281,8 +281,8 @@ namespace Finder
                     return result;
                 }
 
-                // 2. Сокет на каждый интерфейс. Порт 23 может быть занят —
-                //    в этом случае пробуем эфемерный порт (демон отвечает на адрес отправителя).
+                // 2. A socket per interface. Port 23 may already be in use —
+                //    in that case fall back to an ephemeral port (the daemon replies to the sender's address).
                 foreach (var iface in interfaces)
                 {
                     Socket? sock = TryBind(iface.Local, DiscoveryPort) ?? TryBind(iface.Local, 0);
@@ -300,8 +300,8 @@ namespace Finder
                     return result;
                 }
 
-                // 3. Запрос: TAG_CMD, длина, команда, контрольная сумма.
-                //    Длина включает байт контрольной суммы; сумма всех байт пакета = 0 (mod 256).
+                // 3. Request: TAG_CMD, length, command, checksum.
+                //    Length includes the checksum byte; the sum of all packet bytes = 0 (mod 256).
                 byte[] request = new byte[4];
                 request[0] = TagCmd;
                 request[1] = 4;
@@ -311,9 +311,9 @@ namespace Finder
                     request[3] = (byte)(-(request[0] + request[1] + request[2]));
                 }
 
-                // 4. Рассылаем через каждый сокет: и на 255.255.255.255,
-                //    и на широковещательный адрес подсети (некоторые адаптеры
-                //    отбрасывают limited broadcast).
+                // 4. Broadcast through every socket: to 255.255.255.255
+                //    and to the subnet's broadcast address (some adapters
+                //    drop the limited broadcast).
                 foreach (var entry in scanSockets)
                 {
                     foreach (var target in GetBroadcastTargets(entry))
@@ -330,8 +330,8 @@ namespace Finder
                     }
                 }
 
-                // 5. Ждём ответы. Помимо таймаута простоя действует жёсткий общий предел,
-                //    иначе посторонний трафик на порту 23 бесконечно продлевает цикл.
+                // 5. Wait for replies. Besides the idle timeout, a hard overall deadline applies,
+                //    otherwise unrelated traffic on port 23 could extend the loop indefinitely.
                 var sockets = scanSockets.Select(s => s.Socket).ToList();
                 var stopwatch = Stopwatch.StartNew();
                 int idleTimeoutMs = FirstReplyTimeoutMs;
@@ -360,7 +360,7 @@ namespace Finder
                     }
 
                     if (checkRead.Count == 0)
-                        break;   // таймаут простоя
+                        break;   // idle timeout
 
                     foreach (Socket sock in checkRead)
                     {
@@ -377,7 +377,7 @@ namespace Finder
                         }
                     }
 
-                    // После первого найденного устройства ждём остальные меньше.
+                    // Wait less for the remaining devices once the first one is found.
                     if (idleTimeoutMs != SubsequentTimeoutMs && result.Boards.Count > 0)
                         idleTimeoutMs = SubsequentTimeoutMs;
                 }
@@ -399,7 +399,7 @@ namespace Finder
         }
 
         /// <summary>
-        /// Создаёт UDP-сокет на заданном адресе и порту. Возвращает null, если привязка не удалась.
+        /// Creates a UDP socket on the given address and port. Returns null if the bind failed.
         /// </summary>
         private static Socket? TryBind(IPAddress local, int port)
         {
@@ -408,8 +408,8 @@ namespace Finder
             {
                 sock = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
 
-                // Разрешаем повторную привязку: иначе второй запуск сканирования
-                // падает с "адрес уже используется".
+                // Allow re-binding: otherwise a second scan run
+                // fails with "address already in use".
                 try { sock.ExclusiveAddressUse = false; }
                 catch (Exception ex) { Debug.WriteLine($"ExclusiveAddressUse: {ex.Message}"); }
                 try { sock.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true); }
@@ -428,7 +428,7 @@ namespace Finder
             }
         }
 
-        /// <summary>Адреса, по которым рассылается запрос обнаружения.</summary>
+        /// <summary>Addresses the discovery request is broadcast to.</summary>
         private static List<IPEndPoint> GetBroadcastTargets(ScanSocket entry)
         {
             var targets = new List<IPEndPoint>
@@ -446,7 +446,7 @@ namespace Finder
             return targets;
         }
 
-        /// <summary>Вычисляет широковещательный адрес подсети по адресу и маске.</summary>
+        /// <summary>Computes the subnet's broadcast address from the address and mask.</summary>
         private static IPAddress? GetBroadcastAddress(UnicastIPAddressInformation ua)
         {
             try
@@ -471,10 +471,10 @@ namespace Finder
         }
 
         /// <summary>
-        /// Разбирает ответ платы.
-        /// Формат: 0 TAG_STATUS, 1 length, 2 CMD, 3 board type, 4 board ID,
-        /// 5-8 client IP, 9-14 MAC, 15-18 version, 19-82 app title, далее контрольная сумма.
-        /// Поле length включает байт контрольной суммы.
+        /// Parses a board's response.
+        /// Format: 0 TAG_STATUS, 1 length, 2 CMD, 3 board type, 4 board ID,
+        /// 5-8 client IP, 9-14 MAC, 15-18 version, 19-82 app title, followed by the checksum.
+        /// The length field includes the checksum byte.
         /// </summary>
         private void ProcessResponse(byte[] buffer, int received, IPAddress remoteAddress, List<BoardInfo> boards)
         {
@@ -488,7 +488,7 @@ namespace Finder
             if (length < 4 || length > received)
                 return;
 
-            // Сумма всех байт пакета должна быть 0 (mod 256)
+            // The sum of all packet bytes must be 0 (mod 256)
             int sum = 0;
             for (int i = 0; i < length; i++)
                 sum += buffer[i];
@@ -497,7 +497,7 @@ namespace Finder
 
             string ip = remoteAddress.ToString();
             if (boards.Any(b => b.Ip == ip))
-                return;   // плата ответила на несколько наших сокетов
+                return;   // the board replied to more than one of our sockets
 
             var board = new BoardInfo { Ip = ip };
 
@@ -524,8 +524,8 @@ namespace Finder
 
             if (length > 83)
             {
-                // Обрезаем по ПЕРВОМУ нулевому байту: за терминатором в буфере
-                // демона может остаться мусор. Декодируем UTF-8, а не ASCII.
+                // Truncate at the FIRST zero byte: the daemon's buffer may contain
+                // garbage past the terminator. Decode as UTF-8, not ASCII.
                 const int titleOffset = 19;
                 const int titleSize = 64;
 
@@ -540,7 +540,7 @@ namespace Finder
         }
 
         /// <summary>
-        /// Получает MAC-адрес по IP через ARP (только Windows, только IPv4).
+        /// Resolves a MAC address from an IP via ARP (Windows only, IPv4 only).
         /// </summary>
         private string GetMacByArp(IPAddress ip)
         {

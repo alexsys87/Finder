@@ -10,17 +10,17 @@
         Icon="image.ico"
         WindowStartupLocation="CenterScreen" Loaded="Window_Loaded">
     <Grid>
-        <!-- Разделяем окно на 3 части по горизонтали -->
+        <!-- Split the window into 3 horizontal parts -->
         <Grid.RowDefinitions>
             <RowDefinition Height="50"/>
-            <!-- Верх для текста -->
+            <!-- Top for the text -->
             <RowDefinition Height="*"/>
-            <!-- Центр для таблицы -->
+            <!-- Center for the table -->
             <RowDefinition Height="70"/>
-            <!-- Низ для кнопок и статуса -->
+            <!-- Bottom for the buttons and status -->
         </Grid.RowDefinitions>
 
-        <!-- Заголовок -->
+        <!-- Header -->
         <TextBlock Grid.Row="0"
                    Text="Available OpenWrt Boards"
                    FontSize="18"
@@ -28,7 +28,7 @@
                    HorizontalAlignment="Center"
                    VerticalAlignment="Center"/>
 
-        <!-- Таблица (ListView) -->
+        <!-- Table (ListView) -->
         <ListView Grid.Row="1" Margin="10,0,10,0" x:Name="BoardListView"
                   ToolTip="Double-click on a board to open its web interface using the IP">
             <ListView.ItemContainerStyle>
@@ -47,7 +47,7 @@
             </ListView.View>
         </ListView>
 
-        <!-- Панель кнопок и строка состояния -->
+        <!-- Button panel and status line -->
         <Grid Grid.Row="2">
             <TextBlock x:Name="StatusText"
                        Text="Ready"

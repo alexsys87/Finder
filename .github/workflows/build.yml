@@ -34,14 +34,14 @@ jobs:
       - name: Publish (framework-dependent, single file)
         run: >
           dotnet publish Finder.csproj -c Release -r win-x64 --self-contained false
-          -p:PublishSingleFile=true --no-restore
+          -p:PublishSingleFile=true
           -o publish/framework-dependent
 
       - name: Publish (self-contained, single file)
         run: >
           dotnet publish Finder.csproj -c Release -r win-x64 --self-contained true
           -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
-          --no-restore -o publish/self-contained
+          -o publish/self-contained
 
       - name: Upload framework-dependent artifact
         uses: actions/upload-artifact@v4

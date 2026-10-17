@@ -24,4 +24,12 @@
     <Resource Include="image.ico" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The test project lives in a subfolder; keep it out of the app's default globs. -->
+    <Compile Remove="Finder.Tests/**" />
+    <None Remove="Finder.Tests/**" />
+    <EmbeddedResource Remove="Finder.Tests/**" />
+    <Page Remove="Finder.Tests/**" />
+  </ItemGroup>
+
 </Project>

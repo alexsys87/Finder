@@ -5,7 +5,6 @@ using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -62,10 +61,7 @@ namespace Finder
     public partial class MainWindow : Window
     {
         // ---------------- Protocol parameters ----------------
-        private const int DiscoveryPort = 23;
-        private const byte TagCmd = 0xFF;           // request marker
-        private const byte TagStatus = 0xFE;        // response marker
-        private const byte CmdDiscoverTarget = 0x02;
+        private const int DiscoveryPort = DiscoveryProtocol.DiscoveryPort;
 
         // ---------------- Scan parameters ----------------
         private const int MaxBoards = 256;
@@ -271,7 +267,7 @@ namespace Finder
                         if (interfaces.Any(i => i.Local.Equals(ua.Address)))
                             continue;
 
-                        interfaces.Add((ua.Address, GetBroadcastAddress(ua)));
+                        interfaces.Add((ua.Address, DiscoveryProtocol.GetBroadcastAddress(ua.Address, ua.IPv4Mask)));
                     }
                 }
 
@@ -301,22 +297,14 @@ namespace Finder
                 }
 
                 // 3. Request: TAG_CMD, length, command, checksum.
-                //    Length includes the checksum byte; the sum of all packet bytes = 0 (mod 256).
-                byte[] request = new byte[4];
-                request[0] = TagCmd;
-                request[1] = 4;
-                request[2] = CmdDiscoverTarget;
-                unchecked
-                {
-                    request[3] = (byte)(-(request[0] + request[1] + request[2]));
-                }
+                byte[] request = DiscoveryProtocol.BuildRequest();
 
                 // 4. Broadcast through every socket: to 255.255.255.255
                 //    and to the subnet's broadcast address (some adapters
                 //    drop the limited broadcast).
                 foreach (var entry in scanSockets)
                 {
-                    foreach (var target in GetBroadcastTargets(entry))
+                    foreach (var target in DiscoveryProtocol.GetBroadcastTargets(entry.Broadcast))
                     {
                         try
                         {
@@ -428,115 +416,20 @@ namespace Finder
             }
         }
 
-        /// <summary>Addresses the discovery request is broadcast to.</summary>
-        private static List<IPEndPoint> GetBroadcastTargets(ScanSocket entry)
-        {
-            var targets = new List<IPEndPoint>
-            {
-                new IPEndPoint(IPAddress.Broadcast, DiscoveryPort)
-            };
-
-            if (entry.Broadcast != null &&
-                !entry.Broadcast.Equals(IPAddress.Broadcast) &&
-                !entry.Broadcast.Equals(IPAddress.Any))
-            {
-                targets.Add(new IPEndPoint(entry.Broadcast, DiscoveryPort));
-            }
-
-            return targets;
-        }
-
-        /// <summary>Computes the subnet's broadcast address from the address and mask.</summary>
-        private static IPAddress? GetBroadcastAddress(UnicastIPAddressInformation ua)
-        {
-            try
-            {
-                byte[] addr = ua.Address.GetAddressBytes();
-                byte[]? mask = ua.IPv4Mask?.GetAddressBytes();
-
-                if (mask == null || mask.Length != 4 || addr.Length != 4)
-                    return null;
-
-                byte[] broadcast = new byte[4];
-                for (int i = 0; i < 4; i++)
-                    broadcast[i] = (byte)((addr[i] | ~mask[i]) & 0xFF);
-
-                return new IPAddress(broadcast);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"GetBroadcastAddress failed: {ex.Message}");
-                return null;
-            }
-        }
-
         /// <summary>
-        /// Parses a board's response.
-        /// Format: 0 TAG_STATUS, 1 length, 2 CMD, 3 board type, 4 board ID,
-        /// 5-8 client IP, 9-14 MAC, 15-18 version, 19-82 app title, followed by the checksum.
-        /// The length field includes the checksum byte.
+        /// Parses a board's response and appends it to the list (deduplicating by IP).
+        /// The wire format itself is handled by <see cref="DiscoveryProtocol.TryParseResponse"/>.
         /// </summary>
         private void ProcessResponse(byte[] buffer, int received, IPAddress remoteAddress, List<BoardInfo> boards)
         {
-            if (received < 4)
-                return;
-
-            if (buffer[0] != TagStatus || buffer[2] != CmdDiscoverTarget)
-                return;
-
-            int length = buffer[1];
-            if (length < 4 || length > received)
-                return;
-
-            // The sum of all packet bytes must be 0 (mod 256)
-            int sum = 0;
-            for (int i = 0; i < length; i++)
-                sum += buffer[i];
-            if ((sum & 0xFF) != 0)
+            if (!DiscoveryProtocol.TryParseResponse(buffer, received, remoteAddress, GetMacByArp, out var board))
                 return;
 
             string ip = remoteAddress.ToString();
             if (boards.Any(b => b.Ip == ip))
                 return;   // the board replied to more than one of our sockets
 
-            var board = new BoardInfo { Ip = ip };
-
-            if (length > 9)
-            {
-                byte[] clientIpBytes = new byte[4];
-                Array.Copy(buffer, 5, clientIpBytes, 0, 4);
-                board.ClientIp = new IPAddress(clientIpBytes).ToString();
-            }
-
-            if (length > 15)
-            {
-                byte[] macBytes = new byte[6];
-                Array.Copy(buffer, 9, macBytes, 0, 6);
-                board.Mac = BitConverter.ToString(macBytes).Replace('-', ':');
-            }
-            else
-            {
-                board.Mac = GetMacByArp(remoteAddress);
-            }
-
-            if (length > 19)
-                board.Version = $"{buffer[15]}.{buffer[16]}.{buffer[17]}.{buffer[18]}";
-
-            if (length > 83)
-            {
-                // Truncate at the FIRST zero byte: the daemon's buffer may contain
-                // garbage past the terminator. Decode as UTF-8, not ASCII.
-                const int titleOffset = 19;
-                const int titleSize = 64;
-
-                int end = titleOffset;
-                while (end < titleOffset + titleSize && buffer[end] != 0)
-                    end++;
-
-                board.App = Encoding.UTF8.GetString(buffer, titleOffset, end - titleOffset).Trim();
-            }
-
-            boards.Add(board);
+            boards.Add(board!);
         }
 
         /// <summary>

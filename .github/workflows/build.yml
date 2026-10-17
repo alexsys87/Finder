@@ -88,10 +88,22 @@ jobs:
           path: publish/self-contained/Finder.exe
           if-no-files-found: error
 
+      - name: Prepare release assets
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          # Both publishes produce "Finder.exe"; give each a unique, versioned name
+          # so one does not overwrite the other as a release asset.
+          $tag = "${{ github.ref_name }}"
+          Copy-Item publish/framework-dependent/Finder.exe "publish/Finder-$tag-framework-dependent-win-x64.exe"
+          Copy-Item publish/self-contained/Finder.exe "publish/Finder-$tag-self-contained-win-x64.exe"
+
       - name: Attach binaries to release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
           files: |
-            publish/framework-dependent/Finder.exe
-            publish/self-contained/Finder.exe
+            publish/Finder-*-framework-dependent-win-x64.exe
+            publish/Finder-*-self-contained-win-x64.exe

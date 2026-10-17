@@ -92,6 +92,18 @@ dotnet test Finder.Tests/Finder.Tests.csproj
 CI runs the tests on every push and pull request, and the build job only starts
 after the tests pass.
 
+## Releases
+
+Pushing a `v*` tag builds and publishes a GitHub Release with two executables
+attached (`*-framework-dependent-win-x64.exe` and `*-self-contained-win-x64.exe`):
+
+```bash
+git tag v1.1.0
+git push origin v1.1.0
+```
+
+Keep the tag in sync with `<Version>` in `Finder.csproj`.
+
 ## Usage
 
 1. Make sure the `locator` daemon is running on the board and that the PC is on the same L2 segment

@@ -72,6 +72,19 @@ dotnet test Finder.Tests/Finder.Tests.csproj
 CI запускает тесты при каждом push и pull request, а сборка стартует
 только после успешного прохождения тестов.
 
+## Релизы
+
+При отправке тега `v*` собирается и публикуется GitHub Release с двумя
+исполняемыми файлами (`*-framework-dependent-win-x64.exe` и
+`*-self-contained-win-x64.exe`):
+
+```bash
+git tag v1.1.0
+git push origin v1.1.0
+```
+
+Держите тег в соответствии с `<Version>` в `Finder.csproj`.
+
 ## Использование
 
 1. Убедитесь, что на плате запущен демон `locator`, а ПК находится в том же L2-сегменте

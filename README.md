@@ -80,6 +80,18 @@ dotnet publish -c Release -r win-x64 --self-contained true ^
 
 The result lands in `bin/Release/net8.0-windows/win-x64/publish/`.
 
+## Tests
+
+The discovery protocol logic lives in `DiscoveryProtocol` (a UI-independent class),
+covered by an xUnit test project.
+
+```bash
+dotnet test Finder.Tests/Finder.Tests.csproj
+```
+
+CI runs the tests on every push and pull request, and the build job only starts
+after the tests pass.
+
 ## Usage
 
 1. Make sure the `locator` daemon is running on the board and that the PC is on the same L2 segment

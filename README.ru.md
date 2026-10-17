@@ -60,6 +60,18 @@ dotnet publish -c Release -r win-x64 --self-contained true ^
 
 Результат — в `bin/Release/net8.0-windows/win-x64/publish/`.
 
+## Тесты
+
+Логика протокола обнаружения вынесена в класс `DiscoveryProtocol`
+(независимый от UI) и покрыта тестами xUnit.
+
+```bash
+dotnet test Finder.Tests/Finder.Tests.csproj
+```
+
+CI запускает тесты при каждом push и pull request, а сборка стартует
+только после успешного прохождения тестов.
+
 ## Использование
 
 1. Убедитесь, что на плате запущен демон `locator`, а ПК находится в том же L2-сегменте
@@ -134,9 +146,11 @@ Finder/
 ├── Finder.csproj
 ├── App.xaml / App.xaml.cs          глобальные обработчики исключений
 ├── MainWindow.xaml                 разметка окна, колонки, кнопки
-├── MainWindow.xaml.cs              обнаружение, разбор пакетов, ARP
+├── MainWindow.xaml.cs              обнаружение, отправка/приём, ARP
+├── DiscoveryProtocol.cs            протокол (сборка запроса, разбор ответа)
 ├── AssemblyInfo.cs
 ├── image.ico
+├── Finder.Tests/                   тесты xUnit для DiscoveryProtocol и BoardInfo
 └── README.md
 ```
 

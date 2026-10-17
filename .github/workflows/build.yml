@@ -1,0 +1,66 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (Windows x64)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore Finder.sln
+
+      - name: Build
+        run: dotnet build Finder.sln -c Release --no-restore
+
+      - name: Publish (framework-dependent, single file)
+        run: >
+          dotnet publish Finder.csproj -c Release -r win-x64 --self-contained false
+          -p:PublishSingleFile=true --no-restore
+          -o publish/framework-dependent
+
+      - name: Publish (self-contained, single file)
+        run: >
+          dotnet publish Finder.csproj -c Release -r win-x64 --self-contained true
+          -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+          --no-restore -o publish/self-contained
+
+      - name: Upload framework-dependent artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Finder-framework-dependent-win-x64
+          path: publish/framework-dependent/Finder.exe
+          if-no-files-found: error
+
+      - name: Upload self-contained artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Finder-self-contained-win-x64
+          path: publish/self-contained/Finder.exe
+          if-no-files-found: error
+
+      - name: Attach binaries to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            publish/framework-dependent/Finder.exe
+            publish/self-contained/Finder.exe

@@ -351,7 +351,7 @@ namespace Finder
 
                     try
                     {
-                        Socket.Select(checkRead, null, null, waitMs * 1000);
+                        Socket.Select(checkRead, null, null, waitMs);
                     }
                     catch (SocketException ex)
                     {
